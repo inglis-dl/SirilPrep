@@ -3,9 +3,15 @@
 #include <QFileInfo>
 #include <QFile>
 #include <QDebug>
+#include <QDirIterator>
+#include "fitsio.h"
 
 ImageOrganizer::ImageOrganizer(QObject* parent)
 	: QObject(parent)
+{
+}
+
+ImageOrganizer::~ImageOrganizer()
 {
 }
 
@@ -66,4 +72,51 @@ QString ImageOrganizer::imageTypeToString(ImageType type)
 		case ImageType::Bias:  return "bias";
 		default:               return "unknown";
 	}
+}
+
+QList<QString> ImageOrganizer::scanFitsFiles(const QString& folderPath)
+{
+	QList<QString> fitsFiles;
+	QDirIterator it(folderPath, QStringList() << "*.fits" << "*.fit", QDir::Files, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		fitsFiles.append(it.next());
+	}
+	return fitsFiles;
+}
+
+FitsFileMeta ImageOrganizer::extractFitsMeta(const QString& filePath)
+{
+	FitsFileMeta meta;
+	meta.filePath = filePath;
+	fitsfile* fptr = nullptr;
+	int status = 0;
+	char value[FLEN_VALUE], comment[FLEN_COMMENT];
+
+	if (fits_open_file(&fptr, filePath.toStdString().c_str(), READONLY, &status) == 0) {
+		// OBJECT
+		if (fits_read_key(fptr, TSTRING, "OBJECT", value, comment, &status) == 0)
+			meta.object = QString::fromLatin1(value);
+		status = 0;
+		// DATE-OBS
+		if (fits_read_key(fptr, TSTRING, "DATE-OBS", value, comment, &status) == 0)
+			meta.dateObs = QString::fromLatin1(value);
+		status = 0;
+		// EXPTIME
+		double exptime = 0.0;
+		if (fits_read_key(fptr, TDOUBLE, "EXPTIME", &exptime, comment, &status) == 0)
+			meta.exptime = exptime;
+		status = 0;
+		fits_close_file(fptr, &status);
+	}
+	return meta;
+}
+
+QList<FitsFileMeta> ImageOrganizer::loadFitsFilesWithMeta(const QString& folderPath)
+{
+	QList<FitsFileMeta> metaList;
+	auto files = scanFitsFiles(folderPath);
+	for (const auto& file : files) {
+		metaList.append(extractFitsMeta(file));
+	}
+	return metaList;
 }

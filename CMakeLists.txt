@@ -54,23 +54,44 @@ endforeach()
 find_package(Qt5 COMPONENTS Widgets Sql REQUIRED)
 
 # Find CFITSIO (required for FITS file support)
-find_package(PkgConfig)
-pkg_check_modules(CFITSIO QUIET cfitsio)
+# Allow user to specify CFITSIO_ROOT, CFITSIO_INCLUDE_DIR, and CFITSIO_LIBRARY
 
-if(CFITSIO_FOUND)
-    message(STATUS "Found CFITSIO via pkg-config")
-    include_directories(${CFITSIO_INCLUDE_DIRS})
-    link_directories(${CFITSIO_LIBRARY_DIRS})
-    set(CFITSIO_LIBRARIES ${CFITSIO_LIBRARIES})
-else()
-    find_path(CFITSIO_INCLUDE_DIR fitsio.h)
-    find_library(CFITSIO_LIBRARY NAMES cfitsio)
-    if(CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARY)
-        set(CFITSIO_LIBRARIES ${CFITSIO_LIBRARY})
-        message(STATUS "Found CFITSIO: ${CFITSIO_LIBRARY}")
+set(CFITSIO_ROOT "" CACHE PATH "Root directory of CFITSIO installation")
+
+# Try CMake config mode first
+find_package(CFITSIO CONFIG)
+
+if(NOT TARGET CFITSIO::cfitsio)
+    # Fallback: try to find manually, using user hints if provided
+    if(CFITSIO_ROOT)
+        set(_cfitsio_inc_paths "${CFITSIO_ROOT}/include")
+        set(_cfitsio_lib_paths "${CFITSIO_ROOT}/lib")
     else()
-        message(FATAL_ERROR "CFITSIO library not found. Please install cfitsio development files.")
+        set(_cfitsio_inc_paths "")
+        set(_cfitsio_lib_paths "")
     endif()
+
+    find_path(CFITSIO_INCLUDE_DIR fitsio.h
+        HINTS ${_cfitsio_inc_paths}
+        DOC "Path to cfitsio headers"
+    )
+    find_library(CFITSIO_LIBRARY NAMES cfitsio
+        HINTS ${_cfitsio_lib_paths}
+        DOC "Path to cfitsio library"
+    )
+
+    if(CFITSIO_INCLUDE_DIR AND CFITSIO_LIBRARY)
+        message(STATUS "Found CFITSIO manually: ${CFITSIO_INCLUDE_DIR}, ${CFITSIO_LIBRARY}")
+        add_library(CFITSIO::cfitsio UNKNOWN IMPORTED)
+        set_target_properties(CFITSIO::cfitsio PROPERTIES
+            IMPORTED_LOCATION "${CFITSIO_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${CFITSIO_INCLUDE_DIR}"
+        )
+    else()
+        message(FATAL_ERROR "CFITSIO library not found. Please install cfitsio development files or specify -DCFITSIO_ROOT, -DCFITSIO_INCLUDE_DIR, and -DCFITSIO_LIBRARY.")
+    endif()
+else()
+    message(STATUS "Found CFITSIO via CMake config: using CFITSIO::cfitsio target")
 endif()
 
 # Qt auto features
@@ -99,7 +120,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         Qt5::Widgets
         Qt5::Sql
-        ${CFITSIO_LIBRARIES}
+        CFITSIO::cfitsio
 )
 
 # Optional: Doxygen documentation

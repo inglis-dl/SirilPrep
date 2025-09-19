@@ -1,0 +1,70 @@
+# SirilPrep
+
+SirilPrep is an open source preprocessing tool for Siril and FITS images. It provides a Qt-based graphical interface for organizing, renaming, and preparing astronomical image files for further processing in Siril.
+
+## Features
+
+- Batch file renaming for FITS images
+- Image organization and database management
+- Integration with Siril workflows
+- Cross-platform (Windows, Linux, macOS)
+
+## Build Instructions (Windows)
+
+### Prerequisites
+
+- **C++ Compiler**: Visual Studio 2019 or newer (with C++14 support)
+- **CMake**: Version 3.16 or newer
+- **Qt5**: Widgets and Sql components (e.g., Qt 5.15, install via [Qt Online Installer](https://www.qt.io/download))
+- **CFITSIO**: Pre-built Windows binaries or build from [NASA/HEASARC](https://heasarc.gsfc.nasa.gov/fitsio/)
+- **PkgConfig**: Optional, for easier CFITSIO detection
+- (Optional) **Doxygen**: For building documentation
+
+### Steps
+
+1. **Clone the repository:**
+
+````````
+
+2. **Install dependencies:**
+- **Qt5**: Install using the Qt Online Installer. Make sure to add Qt's `bin` directory to your `PATH`.
+- **CFITSIO**: Download and extract the Windows binaries. Note the include and lib directories for CMake.
+- (Optional) **PkgConfig**: [Download for Windows](https://sourceforge.net/projects/pkgconfiglite/).
+
+3. **Configure the project:**
+- Open a "x64 Native Tools Command Prompt for VS".
+- Create a build directory and run CMake:
+  ```sh
+  mkdir build
+  cd build
+  cmake .. -G "Visual Studio 16 2019" -A x64 ^
+    -DCMAKE_PREFIX_PATH="C:/Qt/5.15.2/msvc2019_64" ^
+    -DCFITSIO_INCLUDE_DIR="C:/path/to/cfitsio/include" ^
+    -DCFITSIO_LIBRARY="C:/path/to/cfitsio/lib/cfitsio.lib"
+  ```
+  Adjust the paths above to match your Qt and CFITSIO installations.
+
+4. **Build the project:**
+or open the generated `.sln` file in Visual Studio and build.
+
+5. **(Optional) Build documentation:**
+
+````````
+
+### Notes
+
+- Ensure all required DLLs (Qt5, CFITSIO) are available in your `PATH` or next to the executable for runtime.
+- If you encounter issues with library detection, specify the paths explicitly as shown above.
+- Only Windows is supported in these instructions.
+
+> **Warning:**  
+> If you are building SirilPrep **statically** (i.e., linking to static versions of zlib and/or cfitsio), you may need to manually set the `CMAKE_MSVC_RUNTIME_LIBRARY` property for your dependencies.  
+>  
+> For example, when building or integrating static zlib or cfitsio, ensure their CMake configuration uses the same runtime library as SirilPrep (e.g., `/MD` or `/MDd`).  
+>  
+> You can set this in your CMake command or `CMakeLists.txt`:
+> ```cmake
+> set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+> ```
+>  
+> Mismatched runtime libraries between SirilPrep and its static dependencies can cause linker errors or runtime issues.
