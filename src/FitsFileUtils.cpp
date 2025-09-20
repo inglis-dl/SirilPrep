@@ -36,6 +36,36 @@ FitsFileMeta FitsFileUtils::extractFitsMeta(const QString& filePath)
 		if (fits_read_key(fptr, TDOUBLE, "EXPTIME", &exptime, comment, &status) == 0)
 			meta.exptime = exptime;
 		status = 0;
+		// Read CCD-TEMP
+		double ccdTemp = 0.0;
+		if (!fits_read_key(fptr, TDOUBLE, "CCD-TEMP", &ccdTemp, comment, &status)) {
+			meta.ccdTemp = ccdTemp;
+		}
+		status = 0;
+		// Read GAIN
+		double gain = 0.0;
+		if (!fits_read_key(fptr, TDOUBLE, "GAIN", &gain, comment, &status)) {
+			meta.gain = gain;
+		}
+		status = 0;
+		// IMAGETYP
+		if (fits_read_key(fptr, TSTRING, "IMAGETYP", value, comment, &status) == 0) {
+			QString typeStr = QString::fromLatin1(value).remove('\'').trimmed();
+			if (typeStr.compare("Light", Qt::CaseInsensitive) == 0)
+				meta.imageType = ImageType::Light;
+			else if (typeStr.compare("Dark", Qt::CaseInsensitive) == 0)
+				meta.imageType = ImageType::Dark;
+			else if (typeStr.compare("Flat", Qt::CaseInsensitive) == 0)
+				meta.imageType = ImageType::Flat;
+			else if (typeStr.compare("Bias", Qt::CaseInsensitive) == 0)
+				meta.imageType = ImageType::Bias;
+			else
+				meta.imageType = ImageType::Unknown;
+		}
+		else {
+			meta.imageType = ImageType::Unknown;
+		}
+		status = 0;
 		fits_close_file(fptr, &status);
 	}
 	return meta;
@@ -69,4 +99,16 @@ QString FitsFileUtils::replaceObjectInFileName(const QString& fileName, const QS
 	if (idx != -1)
 		newName.replace(idx, oldObject.length(), newObject);
 	return newName;
+}
+
+
+QString FitsFileUtils::imageTypeToString(ImageType type)
+{
+	switch (type) {
+		case ImageType::Light: return "lights";
+		case ImageType::Dark:  return "darks";
+		case ImageType::Flat:  return "flats";
+		case ImageType::Bias:  return "bias";
+		default:               return "unknown";
+	}
 }

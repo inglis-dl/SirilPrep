@@ -2,7 +2,26 @@
 
 #include <QString>
 #include <QList>
-#include "ImageOrganizer.h" // For FitsFileMeta
+
+// --- Move these here ---
+enum class ImageType {
+	Light,
+	Dark,
+	Flat,
+	Bias,
+	Unknown
+};
+
+struct FitsFileMeta {
+	QString filePath;
+	QString object;
+	QString dateObs;
+	double exptime = 0.0;
+	ImageType imageType = ImageType::Unknown;
+	double ccdTemp = 0.0; // CCD-TEMP metadata
+	double gain = 0.0;    // GAIN metadata
+};
+// ---
 
 class FitsFileUtils
 {
@@ -19,4 +38,6 @@ public:
 	// Utility functions for renaming
 	static QString extractObjectFromFileName(const QString& fileName);
 	static QString replaceObjectInFileName(const QString& fileName, const QString& oldObject, const QString& newObject);
+
+	static QString imageTypeToString(ImageType type);
 };
