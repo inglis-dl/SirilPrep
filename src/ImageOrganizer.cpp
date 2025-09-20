@@ -1,18 +1,71 @@
 #include "ImageOrganizer.h"
-#include <QDir>
-#include <QFileInfo>
-#include <QFile>
-#include <QDebug>
+#include "ui_ImageOrganizer.h"
+#include "FitsFileUtils.h"
+#include <QFileDialog>
 #include <QDirIterator>
-#include "fitsio.h"
+#include <QDebug>
+#include <QStandardItemModel>
+#include <fitsio.h>
 
-ImageOrganizer::ImageOrganizer(QObject* parent)
-	: QObject(parent)
+ImageOrganizer::ImageOrganizer(QWidget* parent)
+	: QWidget(parent)
 {
+	ui.setupUi(this);
+
+	m_fitsModel = new QStandardItemModel(this);
+	m_fitsModel->setColumnCount(4);
+	m_fitsModel->setHeaderData(0, Qt::Horizontal, "File");
+	m_fitsModel->setHeaderData(1, Qt::Horizontal, "Object");
+	m_fitsModel->setHeaderData(2, Qt::Horizontal, "Date Obs");
+	m_fitsModel->setHeaderData(3, Qt::Horizontal, "Exp Time");
+	ui.tableViewFitsFiles->setModel(m_fitsModel);
+
+	connect(ui.pushButtonBrowseFolder, &QPushButton::clicked,
+			this, &ImageOrganizer::onBrowseFolderClicked);
+	connect(ui.lineEditFolder, &QLineEdit::editingFinished,
+			this, &ImageOrganizer::onFolderEdited);
 }
 
 ImageOrganizer::~ImageOrganizer()
 {
+}
+
+void ImageOrganizer::onBrowseFolderClicked()
+{
+	QString dir = QFileDialog::getExistingDirectory(this, tr("Select FITS Directory"));
+	if (!dir.isEmpty()) {
+		ui.lineEditFolder->setText(dir);
+		loadDirectory(dir);
+	}
+}
+
+void ImageOrganizer::onFolderEdited()
+{
+	QString dir = ui.lineEditFolder->text();
+	if (!dir.isEmpty() && QDir(dir).exists()) {
+		loadDirectory(dir);
+	}
+}
+
+void ImageOrganizer::loadDirectory(const QString& directoryPath)
+{
+	m_fitsMetaList = loadFitsFilesWithMeta(directoryPath);
+	updateFitsTable();
+	emit directoryLoaded(directoryPath);
+}
+
+void ImageOrganizer::updateFitsTable()
+{
+	m_fitsModel->removeRows(0, m_fitsModel->rowCount());
+	int row = 0;
+	for (const auto& meta : m_fitsMetaList) {
+		m_fitsModel->insertRow(row);
+		m_fitsModel->setData(m_fitsModel->index(row, 0), meta.filePath);
+		m_fitsModel->setData(m_fitsModel->index(row, 1), meta.object);
+		m_fitsModel->setData(m_fitsModel->index(row, 2), meta.dateObs);
+		m_fitsModel->setData(m_fitsModel->index(row, 3), meta.exptime);
+		++row;
+	}
 }
 
 QMap<ImageType, QStringList> ImageOrganizer::organizeImages(const QString& directoryPath)
@@ -114,9 +167,11 @@ FitsFileMeta ImageOrganizer::extractFitsMeta(const QString& filePath)
 QList<FitsFileMeta> ImageOrganizer::loadFitsFilesWithMeta(const QString& folderPath)
 {
 	QList<FitsFileMeta> metaList;
-	auto files = scanFitsFiles(folderPath);
-	for (const auto& file : files) {
-		metaList.append(extractFitsMeta(file));
+	auto fitsFiles = scanFitsFiles(folderPath);
+	for (const auto& info : fitsFiles) {
+		FitsFileMeta meta = extractFitsMeta(info);
+		metaList.append(meta);
 	}
+	// Do not call updateFitsTable here, as it is now handled in loadDirectory
 	return metaList;
 }

@@ -1,15 +1,18 @@
 #pragma once
 
-#include <QObject>
+#include <QWidget>
 #include <QStringList>
 #include <QProcess>
 
-class SirilProcessor : public QObject
+#include "ui_SirilProcessor.h"
+
+class SirilProcessor : public QWidget
 {
 	Q_OBJECT
 
 public:
-	explicit SirilProcessor(QObject* parent = nullptr);
+	explicit SirilProcessor(QWidget* parent = nullptr);
+	~SirilProcessor();
 
 	bool processFiles(const QStringList& sourceFiles, const QString& masterDark, const QString& masterFlat);
 
@@ -21,5 +24,6 @@ private:
 	QString createSirilScript(const QString& processDir, const QString& sourceDir, const QString& masterDark, const QString& masterFlat);
 	void runSirilScript(const QString& scriptPath, const QString& workingDir);
 
+	Ui::SirilProcessor ui;
 	QProcess* sirilProcess = nullptr;
 };

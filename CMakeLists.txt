@@ -106,8 +106,8 @@ set(SOURCES
     src/MainWindow.h
     src/DatabaseManager.cpp
     src/DatabaseManager.h
-    src/FileRenamer.cpp
-    src/FileRenamer.h
+    src/FitsFileUtils.cpp
+    src/FitsFileUtils.h
     src/SirilProcessor.cpp
     src/SirilProcessor.h
     src/ImageOrganizer.cpp

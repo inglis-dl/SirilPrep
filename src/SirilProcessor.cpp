@@ -1,12 +1,18 @@
 #include "SirilProcessor.h"
+#include "ui_SirilProcessor.h"
+
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
 #include <QFileInfo>
 
-SirilProcessor::SirilProcessor(QObject* parent)
-	: QObject(parent)
+SirilProcessor::SirilProcessor(QWidget* parent)
+	: QWidget(parent)
 {
+	ui.setupUi(this);
+}
+
+SirilProcessor::~SirilProcessor() {
 }
 
 bool SirilProcessor::processFiles(const QStringList& sourceFiles, const QString& masterDark, const QString& masterFlat)
